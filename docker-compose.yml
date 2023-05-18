@@ -1,15 +1,20 @@
 version: '3'
 services:
   zookeeper:
-    image: eventuateio/eventuate-zookeeper:$EVENTUATE_COMMON_VERSION
+    image: eventuateio/eventuate-zookeeper:0.15.0.RELEASE
     ports:
       - 2181:2181
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       KAFKA_HEAP_OPTS: -Xmx64m
-
+    networks: 
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master] 
+        
   kafka:
-    image: "eventuateio/eventuate-kafka:$EVENTUATE_MESSAGING_KAFKA_IMAGE_VERSION"
+    image: "eventuateio/eventuate-kafka:0.15.0.RELEASE"
     ports:
       - 9092:9092
     depends_on:
@@ -22,20 +27,26 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_HEAP_OPTS: -Xmx192m
+    networks: 
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]       
   mysql:
-    build:
-      context: ./mysql
-      args:
-        EVENTUATE_COMMON_VERSION: ${EVENTUATE_COMMON_VERSION?}
-        EVENTUATE_SAGA_VERSION: ${EVENTUATE_SAGA_VERSION?}
+    image: odidev/ftgo-application_mysql:latest 
     ports:
       - 3306:3306
     environment:
       - MYSQL_ROOT_PASSWORD=rootpassword
       - MYSQL_USER=mysqluser
-      - MYSQL_PASSWORD=mysqlpw
+      - MYSQL_PASSWORD=mysqlpw  
+    networks: 
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master] 
   cdc-service:
-    image: eventuateio/eventuate-cdc-service:$EVENTUATE_CDC_VERSION
+    image: eventuateio/eventuate-cdc-service:0.13.0.RELEASE
     ports:
       - "8099:8080"
     depends_on:
@@ -89,12 +100,14 @@ services:
       EVENTUATE_CDC_READER_READER1_OFFSETSTOREKEY: MySqlBinlog
       EVENTUATE_CDC_READER_READER1_OFFSETSTORAGETOPICNAME: db.history.common
       EVENTUATE_CDC_READER_READER1_OUTBOXID: 1
-
+    networks: 
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master] 
+        
   ftgo-consumer-service:
-    build: 
-      context: ./ftgo-consumer-service
-      args:
-          baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+    image: odidev/ftgo-application_ftgo-consumer-service:latest 
     ports:
       - "8081:8080"
     depends_on:
@@ -109,11 +122,13 @@ services:
       EVENTUATELOCAL_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EVENTUATELOCAL_ZOOKEEPER_CONNECTION_STRING: zookeeper:2181
       EVENTUATE_DATABASE_SCHEMA: ftgo_consumer_service
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]
   ftgo-order-service:
-    build: 
-      context: ./ftgo-order-service
-      args:
-          baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+    image: odidev/ftgo-application_ftgo-order-service:latest 
     ports:
       - "8082:8080"
     depends_on:
@@ -132,11 +147,13 @@ services:
       SPRING_SLEUTH_SAMPLER_PROBABILITY: 1
       SPRING_ZIPKIN_BASE_URL: http://zipkin:9411/
       EVENTUATE_DATABASE_SCHEMA: ftgo_order_service
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]
   ftgo-kitchen-service:
-      build: 
-        context: ./ftgo-kitchen-service
-        args:
-            baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+      image: odidev/ftgo-application_ftgo-kitchen-service:latest
       ports:
         - "8083:8080"
       depends_on:
@@ -152,11 +169,13 @@ services:
         EVENTUATELOCAL_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
         EVENTUATELOCAL_ZOOKEEPER_CONNECTION_STRING: zookeeper:2181
         EVENTUATE_DATABASE_SCHEMA: ftgo_kitchen_service
+      networks:
+            - testservice 
+      deploy: 
+        placement: 
+          constraints: [node.hostname != ip-master]        
   ftgo-restaurant-service:
-      build: 
-        context: ./ftgo-restaurant-service
-        args:
-            baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+      image: odidev/ftgo-application_ftgo-restaurant-service:latest 
       ports:
         - "8084:8080"
       depends_on:
@@ -172,11 +191,13 @@ services:
         EVENTUATELOCAL_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
         EVENTUATELOCAL_ZOOKEEPER_CONNECTION_STRING: zookeeper:2181
         EVENTUATE_DATABASE_SCHEMA: ftgo_restaurant_service
+      networks:
+            - testservice 
+      deploy: 
+        placement: 
+          constraints: [node.hostname != ip-master]        
   ftgo-accounting-service:
-        build: 
-          context: ./ftgo-accounting-service
-          args:
-              baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+        image: odidev/ftgo-application_ftgo-accounting-service:latest 
         ports:
           - "8085:8080"
         depends_on:
@@ -192,11 +213,13 @@ services:
           EVENTUATELOCAL_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
           EVENTUATELOCAL_ZOOKEEPER_CONNECTION_STRING: zookeeper:2181
           EVENTUATE_DATABASE_SCHEMA: ftgo_accounting_service
+        networks:
+              - testservice 
+        deploy: 
+          placement: 
+            constraints: [node.hostname != ip-master]          
   ftgo-delivery-service:
-    build: 
-      context: ./ftgo-delivery-service
-      args:
-          baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+    image: odidev/ftgo-application_ftgo-delivery-service:latest 
     ports:
       - "8089:8080"
     depends_on:
@@ -215,11 +238,13 @@ services:
       SPRING_SLEUTH_SAMPLER_PROBABILITY: 1
       SPRING_ZIPKIN_BASE_URL: http://zipkin:9411/
       EVENTUATE_DATABASE_SCHEMA: ftgo_delivery_service
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]      
   ftgo-order-history-service:
-    build: 
-      context: ./ftgo-order-history-service
-      args:
-          baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+    image: odidev/ftgo-application_ftgo-order-history-service:latest 
     ports:
       - "8086:8080"
     depends_on:
@@ -235,11 +260,13 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-access_key}
       AWS_DYNAMODB_ENDPOINT_URL: http://dynamodblocal:8000
       AWS_REGION: ${AWS_REGION:-us-west-2}
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]      
   ftgo-api-gateway:
-    build: 
-      context: ./ftgo-api-gateway
-      args:
-          baseImageVersion: ${EVENTUATE_JAVA_BASE_IMAGE_VERSION}
+    image: odidev/ftgo-application_ftgo-api-gateway:latest 
     ports:
       - "8087:8080"
     environment:
@@ -249,6 +276,11 @@ services:
       SPRING_SLEUTH_ENABLED: "true"
       SPRING_SLEUTH_SAMPLER_PROBABILITY: 1
       SPRING_ZIPKIN_BASE_URL: http://zipkin:9411/
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]      
 
   zipkin:
       image: openzipkin/zipkin:2.21
@@ -256,16 +288,26 @@ services:
        - "9411:9411"
       environment:
         JAVA_OPTS: -Xmx128m
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]        
 
   dynamodblocal:
-    build: ./dynamodblocal
+    image: odidev/ftgo-application_dynamodblocal:latest 
     ports:
      - "8000:8000"
     environment:
       JAVA_OPTS: -Xmx128m
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]      
 
   dynamodblocal-init:
-    build: ./dynamodblocal-init
+    image: odidev/ftgo-application_dynamodblocal-init:latest 
     depends_on:
       - dynamodblocal
     restart: on-failure
@@ -274,6 +316,11 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-id_key}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-access_key}
       AWS_REGION: ${AWS_REGION:-us-west-2}
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]      
 
   kafka-gui:
     image: quay.io/cloudhut/kowl:master-1d07695
@@ -283,3 +330,13 @@ services:
       - kafka
     environment:
       KAFKA_BROKERS: kafka:29092
+    networks:
+          - testservice 
+    deploy: 
+      placement: 
+        constraints: [node.hostname != ip-master]
+networks: 
+  testservice: 
+    external: 
+      name: testservice         
+        
